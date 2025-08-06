@@ -37,6 +37,8 @@ Copyright (C) 2012-2020 Yann Collet
 */
 
 #pragma once
+#ifndef _CORE_XXH3_HPP_
+#define _CORE_XXH3_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -260,37 +262,6 @@ constexpr size_t bytes_size(T (&)[N]) noexcept {
 /// Basic interfaces
 
 template <ByteType T>
-inline uint64_t XXH3_64bits(const T* input, size_t len) noexcept {
-    return XXH3_64bits_internal(input, len, 0, kSecret, sizeof(kSecret),
-                                [](const T* input, size_t len, uint64_t, const void*, size_t) constexpr noexcept {
-                                    return hashLong_64b_internal(input, len, kSecret, sizeof(kSecret));
-                                });
-}
-
-template <ByteType T, ByteType S>
-inline uint64_t XXH3_64bits_withSecret(const T* input, size_t len, const S* secret, size_t secretSize) noexcept {
-    return XXH3_64bits_internal(
-        input, len, 0, secret, secretSize,
-        [](const T* input, size_t len, uint64_t, const S* secret, size_t secretLen) constexpr noexcept {
-            return hashLong_64b_internal(input, len, secret, secretLen);
-        });
-}
-
-template <ByteType T>
-inline uint64_t XXH3_64bits_withSeed(const T* input, size_t len, uint64_t seed) noexcept {
-    if (seed == 0) return XXH3_64bits(input, len);
-    return XXH3_64bits_internal(input, len, seed, kSecret, sizeof(kSecret),
-                                [](const T* input, size_t len, uint64_t seed, const void*, size_t) constexpr noexcept {
-                                    uint8_t secret[SECRET_DEFAULT_SIZE];
-                                    for (size_t i = 0; i < SECRET_DEFAULT_SIZE; i += 16) {
-                                        writeLE64(secret + i, readLE64(kSecret + i) + seed);
-                                        writeLE64(secret + i + 8, readLE64(kSecret + i + 8) - seed);
-                                    }
-                                    return hashLong_64b_internal(input, len, secret, sizeof(secret));
-                                });
-}
-
-template <ByteType T>
 consteval uint64_t XXH3_64bits_const(const T* input, size_t len) noexcept {
     return XXH3_64bits_internal(input, len, 0, kSecret, sizeof(kSecret),
                                 [](const T* input, size_t len, uint64_t, const void*, size_t) constexpr noexcept {
@@ -324,20 +295,6 @@ consteval uint64_t XXH3_64bits_withSeed_const(const T* input, size_t len, uint64
 
 /// Convenient interfaces
 
-template <BytesType Bytes>
-inline uint64_t XXH3_64bits(const Bytes& input) noexcept {
-    return XXH3_64bits(std::data(input), bytes_size(input));
-}
-
-template <BytesType Bytes, BytesType Secret>
-inline uint64_t XXH3_64bits_withSecret(const Bytes& input, const Secret& secret) noexcept {
-    return XXH3_64bits_withSecret(std::data(input), bytes_size(input), std::data(secret), bytes_size(secret));
-}
-
-template <BytesType Bytes>
-inline uint64_t XXH3_64bits_withSeed(const Bytes& input, uint64_t seed) noexcept {
-    return XXH3_64bits_withSeed(std::data(input), bytes_size(input), seed);
-}
 
 template <BytesType Bytes>
 consteval uint64_t XXH3_64bits_const(const Bytes& input) noexcept {
@@ -354,4 +311,57 @@ consteval uint64_t XXH3_64bits_withSeed_const(const Bytes& input, uint64_t seed)
     return XXH3_64bits_withSeed_const(std::data(input), bytes_size(input), seed);
 }
 
+/*
+ * Copyright (C) 2025 June Kim <junekimdev@github>
+ * Modified by June Kim to provide xxh3 hash function in runtime
+*/
+
+template <ByteType T>
+inline uint64_t XXH3_64bits(const T* input, size_t len) noexcept {
+    return XXH3_64bits_internal(input, len, 0, kSecret, sizeof(kSecret),
+                                [](const T* input, size_t len, uint64_t, const void*, size_t) constexpr noexcept {
+                                    return hashLong_64b_internal(input, len, kSecret, sizeof(kSecret));
+                                });
+}
+
+template <ByteType T, ByteType S>
+inline uint64_t XXH3_64bits_withSecret(const T* input, size_t len, const S* secret, size_t secretSize) noexcept {
+    return XXH3_64bits_internal(
+        input, len, 0, secret, secretSize,
+        [](const T* input, size_t len, uint64_t, const S* secret, size_t secretLen) constexpr noexcept {
+            return hashLong_64b_internal(input, len, secret, secretLen);
+        });
+}
+
+template <ByteType T>
+inline uint64_t XXH3_64bits_withSeed(const T* input, size_t len, uint64_t seed) noexcept {
+    if (seed == 0) return XXH3_64bits(input, len);
+    return XXH3_64bits_internal(input, len, seed, kSecret, sizeof(kSecret),
+                                [](const T* input, size_t len, uint64_t seed, const void*, size_t) constexpr noexcept {
+                                    uint8_t secret[SECRET_DEFAULT_SIZE];
+                                    for (size_t i = 0; i < SECRET_DEFAULT_SIZE; i += 16) {
+                                        writeLE64(secret + i, readLE64(kSecret + i) + seed);
+                                        writeLE64(secret + i + 8, readLE64(kSecret + i + 8) - seed);
+                                    }
+                                    return hashLong_64b_internal(input, len, secret, sizeof(secret));
+                                });
+}
+
+template <BytesType Bytes>
+inline uint64_t XXH3_64bits(const Bytes& input) noexcept {
+    return XXH3_64bits(std::data(input), bytes_size(input));
+}
+
+template <BytesType Bytes, BytesType Secret>
+inline uint64_t XXH3_64bits_withSecret(const Bytes& input, const Secret& secret) noexcept {
+    return XXH3_64bits_withSecret(std::data(input), bytes_size(input), std::data(secret), bytes_size(secret));
+}
+
+template <BytesType Bytes>
+inline uint64_t XXH3_64bits_withSeed(const Bytes& input, uint64_t seed) noexcept {
+    return XXH3_64bits_withSeed(std::data(input), bytes_size(input), seed);
+}
+
 }  // namespace xxh3
+
+#endif  // !_CORE_XXH3_HPP_
